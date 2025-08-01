@@ -1,0 +1,15 @@
+# Claude Code関連ファイル
+.claude/
+
+# IDE関連ファイル
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS関連ファイル
+.DS_Store
+Thumbs.db
+
+# ログファイル
+*.log
