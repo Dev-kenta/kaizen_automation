@@ -13,3 +13,16 @@ Thumbs.db
 
 # ログファイル
 *.log
+
+# Node.js関連（pr_screenshot用）
+pr_screenshot/node_modules/
+pr_screenshot/screenshots/  # PNG
+pr_screenshot/pdfs/  # PDF
+pr_screenshot/.env
+pr_screenshot/package-lock.json
+pr_screenshot/.browser-data/
+pr_screenshot/pdfs
+pr_screenshot/screenshots
+
+# Playwrightブラウザキャッシュ
+.ms-playwright/

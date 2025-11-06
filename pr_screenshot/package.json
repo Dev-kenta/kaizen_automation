@@ -1,0 +1,23 @@
+{
+  "name": "pr-screenshot",
+  "version": "1.0.0",
+  "description": "GitHub PR screenshot automation tool using Playwright",
+  "main": "screenshot_pr.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "screenshot": "node screenshot_pr.js"
+  },
+  "keywords": [
+    "playwright",
+    "github",
+    "screenshot",
+    "automation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.49.0",
+    "csv-parser": "^3.0.0",
+    "pdf-lib": "^1.17.1"
+  }
+}
