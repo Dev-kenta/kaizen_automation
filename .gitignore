@@ -28,5 +28,7 @@ pr_screenshot/screenshots
 .ms-playwright/
 
 # security_check関連（センシティブ情報を含む）
-security_check/urls.csv  # Cookieが含まれる
-security_check/security_reports/  # レポートとログ
+# urls.csv: Cookie等のセンシティブ情報が含まれる
+security_check/urls.csv
+# security_reports/: レポートとログ
+security_check/security_reports/
