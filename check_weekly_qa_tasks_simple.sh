@@ -6,6 +6,10 @@
 
 set -e
 
+# GitHub Projects to fetch QA tasks from
+# Add or remove project numbers as needed
+PROJECTS=(32 40)
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -132,13 +136,14 @@ QUERY='query {
 
 # Function to fetch all project items with pagination
 fetch_all_project_items() {
+    local project_number="$1"
     local all_items="[]"
     local has_next_page=true
     local cursor=""
     local page_count=0
     local max_pages=10  # Safety limit to prevent infinite loops
-    
-    echo "Fetching data from GitHub Projects (with pagination)..." >&2
+
+    echo "Fetching data from GitHub Project #$project_number (with pagination)..." >&2
     
     while [ "$has_next_page" = true ] && [ $page_count -lt $max_pages ]; do
         page_count=$((page_count + 1))
@@ -149,7 +154,7 @@ fetch_all_project_items() {
             # First page
             local query='query {
               organization(login: "basicinc") {
-                projectV2(number: 32) {
+                projectV2(number: '$project_number') {
                   items(first: 100, orderBy: {field: POSITION, direction: ASC}) {
                     pageInfo {
                       hasNextPage
@@ -208,7 +213,7 @@ fetch_all_project_items() {
             # Subsequent pages
             local query='query {
               organization(login: "basicinc") {
-                projectV2(number: 32) {
+                projectV2(number: '$project_number') {
                   items(first: 100, after: "'$cursor'", orderBy: {field: POSITION, direction: ASC}) {
                     pageInfo {
                       hasNextPage
@@ -330,8 +335,26 @@ fetch_all_project_items() {
     echo "$all_items" | jq '{"data": {"organization": {"projectV2": {"items": {"nodes": .}}}}}'
 }
 
-# Fetch all project items
-RAW_DATA=$(fetch_all_project_items)
+# Fetch all project items from multiple projects
+echo -e "${BLUE}Fetching QA tasks from ${#PROJECTS[@]} project(s)...${NC}"
+echo ""
+
+ALL_ITEMS="[]"
+for project_num in "${PROJECTS[@]}"; do
+    echo -e "${YELLOW}Processing Project #$project_num${NC}"
+    PROJECT_DATA=$(fetch_all_project_items "$project_num")
+
+    # Extract items from the project
+    PROJECT_ITEMS=$(echo "$PROJECT_DATA" | jq '.data.organization.projectV2.items.nodes')
+
+    # Merge with existing items
+    ALL_ITEMS=$(echo "$ALL_ITEMS" "$PROJECT_ITEMS" | jq -s 'add | unique_by(.content.number)')
+
+    echo ""
+done
+
+# Rebuild the data structure expected by the processing logic
+RAW_DATA=$(echo "$ALL_ITEMS" | jq '{data: {organization: {projectV2: {items: {nodes: .}}}}}')
 
 # Process results with simpler jq
 echo "Processing results..."

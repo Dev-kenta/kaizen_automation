@@ -45,15 +45,9 @@ fi
 
 echo ""
 
-# Step 1: 参照元Issueからサブタスクを抽出
-echo "Step 1: Issue #$SOURCE_ISSUE からサブタスクを抽出中..."
-ISSUE_BODY=$(gh issue view $SOURCE_ISSUE --repo $REPO --json body | jq -r '.body')
-echo "Issue本文の一部:"
-echo "$ISSUE_BODY" | head -10
-echo ""
-
-# 複数のパターンでIssue番号を抽出
-SUBTASK_NUMBERS=$(echo "$ISSUE_BODY" | grep -oE "(#[0-9]+|issues/[0-9]+|/issues/[0-9]+)" | grep -oE "[0-9]+" | sort -u)
+# Step 1: 参照元IssueからSub-issuesを取得
+echo "Step 1: Issue #$SOURCE_ISSUE のSub-issuesを取得中..."
+SUBTASK_NUMBERS=$(gh api /repos/$REPO/issues/$SOURCE_ISSUE/sub_issues --jq '.[].number')
 
 echo "見つかったサブタスク: $SUBTASK_NUMBERS"
 echo ""
@@ -87,7 +81,7 @@ for issue_num in $FILTERED_ISSUES; do
     CLEAN_TITLE=$(echo "$ORIGINAL_TITLE" | sed -E 's/^\[独自ドメインフォーム\] ?//')
     
     # QA実施タスクのタイトル
-    QA_TITLE="$PREFIX $CLEAN_TITLE"
+    QA_TITLE="$PREFIX$CLEAN_TITLE"
     
     # QA実施タスクの本文
     QA_BODY="Parent Issue: #$PARENT_ISSUE
@@ -96,7 +90,7 @@ for issue_num in $FILTERED_ISSUES; do
     
     # Issueを作成
     echo -n "    QA実施タスクを作成中..."
-    NEW_ISSUE=$(gh issue create --repo $REPO --title "$QA_TITLE" --body "$QA_BODY" --label "QA" --web=false | grep -o "[0-9]*$")
+    NEW_ISSUE=$(gh issue create --repo $REPO --title "$QA_TITLE" --body "$QA_BODY" --label "qa-team" --web=false | grep -o "[0-9]*$")
     echo " 作成完了: #$NEW_ISSUE"
     
     CREATED_ISSUES="$CREATED_ISSUES $NEW_ISSUE"
@@ -130,7 +124,25 @@ rm -f "$TEMP_FILE"
 echo "Issue #$PARENT_ISSUE の更新完了"
 echo ""
 
-# Step 5: 完了メッセージ
+# Step 5: GitHub Sub-issues API で親子関係を登録
+echo "Step 5: Issue #$PARENT_ISSUE にSub-issueとして登録中..."
+for issue in $CREATED_ISSUES; do
+    echo -n "  - #$issue のデータベースIDを取得中..."
+    ISSUE_ID=$(gh api /repos/$REPO/issues/$issue --jq '.id')
+    echo " ID: $ISSUE_ID"
+    echo -n "    Sub-issueとして登録中..."
+    if gh api \
+        --method POST \
+        /repos/$REPO/issues/$PARENT_ISSUE/sub_issues \
+        -F sub_issue_id="$ISSUE_ID" > /dev/null 2>&1; then
+        echo " 完了"
+    else
+        echo " 失敗（APIが利用できない可能性があります）"
+    fi
+done
+echo ""
+
+# Step 6: 完了メッセージ
 echo "=== 処理完了 ==="
 echo "作成されたQA実施タスク:"
 for issue in $CREATED_ISSUES; do
